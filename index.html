@@ -144,13 +144,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 </head>
 <body>
 <div id="app"></div>
-<div id="conn" class="conn off">CONNECTING‚Ä¶</div>
+<div id="conn" class="conn off">CONNECTING&hellip;</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 /* ============================================================
-   STEP 1 ‚Äî PASTE YOUR FIREBASE CONFIG BELOW
+   STEP 1 \u2014 PASTE YOUR FIREBASE CONFIG BELOW
    (See README for the 10-minute setup. Replace the whole
    object between the braces with the one Firebase gives you.)
    ============================================================ */
@@ -210,14 +210,14 @@ if (!localMode){
     });
     db.ref('.info/connected').on('value', s=>{
       online = !!s.val();
-      setConn(online, online ? 'LIVE SYNC' : 'OFFLINE ‚Äî RETRYING');
+      setConn(online, online ? 'LIVE SYNC' : 'OFFLINE \u2014 RETRYING');
     });
   }catch(e){
     setConn(false,'SYNC ERROR');
   }
 } else {
   try{ const s = localStorage.getItem('cacscramble'); if (s) state = normalize(JSON.parse(s)); }catch(e){}
-  setConn(false,'LOCAL ONLY ‚Äî NO SYNC');
+  setConn(false,'LOCAL ONLY \u2014 NO SYNC');
 }
 
 /* Firebase drops empty objects, so re-hydrate the shape */
@@ -286,7 +286,7 @@ function render(){
       <div style="text-align:center">
         <img src="./logo.png" alt="CAC Logo" style="width:90px;display:block;margin:0 auto 0;background:#fff;border-radius:8px;padding:5px">
         <div class="hdr-title" style="font-size:26px;margin-top:18px;margin-bottom:0">CAC Scramble</div>
-        <div class="hdr-sub">${COURSE_NAME} ¬∑ 18-Hole Scramble ¬∑ 12 Teams</div>
+        <div class="hdr-sub">${COURSE_NAME} \u00B7 18-Hole Scramble \u00B7 12 Teams</div>
       </div>
     </div>
     <div class="hdr-lead">`;
@@ -309,7 +309,7 @@ function render(){
   </div>
   <div class="wrap">`;
 
-  if (localMode) html += `<div class="banner"><b>Local mode:</b> Firebase config not set ‚Äî scores save on this device only. Paste your Firebase config in the file to enable live sync across phones.</div>`;
+  if (localMode) html += `<div class="banner"><b>Local mode:</b> Firebase config not set \u2014 scores save on this device only. Paste your Firebase config in the file to enable live sync across phones.</div>`;
 
   if (scoringIdx !== null) html += renderScorecard();
   else if (view === 'teams') html += renderTeams();
@@ -321,7 +321,7 @@ function render(){
 }
 
 function renderTeams(){
-  let html = `<div class="sess-meta">18 holes ¬∑ scramble format ¬∑ tap your team to enter scores</div>`;
+  let html = `<div class="sess-meta">18 holes \u00B7 scramble format \u00B7 tap your team to enter scores</div>`;
   html += `<div class="card">`;
   state.teams.forEach((t,i)=>{
     const r = teamResult(t);
@@ -352,19 +352,19 @@ function renderScorecard(){
   let html = `
   <div class="sc-top">
     <button class="back" onclick="closeScore()">&#8592; All teams</button>
-    <div class="sc-fmt">Team ${i+1} of ${NUM_TEAMS} ¬∑ Scramble</div>
+    <div class="sc-fmt">Team ${i+1} of ${NUM_TEAMS} \u00B7 Scramble</div>
     <div class="sc-team">${esc(t.name)}</div>
     <div class="sc-players">${esc(t.p1)} &amp; ${esc(t.p2)}</div>
     <div class="sc-status">
       <span class="lbl">Score</span>
-      <span class="val">${r.started ? fmtRel(r.toPar) + ' ¬∑ thru ' + r.thru + (r.done? ' (final)':'') : 'NOT STARTED'}</span>
+      <span class="val">${r.started ? fmtRel(r.toPar) + ' \u00B7 thru ' + r.thru + (r.done? ' (final)':'') : 'NOT STARTED'}</span>
     </div>
-    <div class="fmt-note">Both partners hit, pick the best ball, both play from there. Enter one team score per hole. Scores sync live ‚Äî everyone sees updates instantly.</div>
+    <div class="fmt-note">Both partners hit, pick the best ball, both play from there. Enter one team score per hole. Scores sync live \u2014 everyone sees updates instantly.</div>
   </div>`;
 
   html += `<div class="nine-hd">Front 9</div><div class="holes">` + holesHtml(i, t, 0, 9) + `</div>`;
   html += `<div class="nine-hd">Back 9</div><div class="holes">` + holesHtml(i, t, 9, 18) + `</div>`;
-  html += `<div style="margin-top:14px"><button class="btn" onclick="closeScore()">Done ‚Äî back to teams</button></div>`;
+  html += `<div style="margin-top:14px"><button class="btn" onclick="closeScore()">Done \u2014 back to teams</button></div>`;
   return html;
 }
 
@@ -409,10 +409,10 @@ function renderBoard(){
     <table class="lb-tbl">`;
   rk.forEach((row,pos)=>{
     const r = row.r, t = row.team;
-    const rankLbl = r.started ? (pos+1) : '‚Äî';
+    const rankLbl = r.started ? (pos+1) : '\u2014';
     let scoreHtml;
     if (r.started) scoreHtml = `<span class="pill ${r.done?relClass(r.toPar):'live'}">${fmtRel(r.toPar)}</span>`;
-    else scoreHtml = `<span class="pill pend">‚Äî</span>`;
+    else scoreHtml = `<span class="pill pend">\u2014</span>`;
     html += `<tr>
       <td class="lb-rank">${rankLbl}</td>
       <td><div class="lb-team">${esc(t.name)}</div><div class="lb-players">${esc(t.p1)} &amp; ${esc(t.p2)}</div></td>
@@ -439,7 +439,7 @@ function renderAdmin(){
   </div>`;
 
   if (adminTab==='teams'){
-    html += `<div class="sess-meta">Team name and both players ‚Äî edits save automatically and update everywhere.</div>`;
+    html += `<div class="sess-meta">Team name and both players \u2014 edits save automatically and update everywhere.</div>`;
     state.teams.forEach((t,i)=>{
       html += `<div class="team-card">
         <div class="tc-hd">Team ${i+1}</div>
@@ -453,7 +453,7 @@ function renderAdmin(){
   if (adminTab==='course'){
     const outSum = state.par.slice(0,9).reduce((a,b)=>a+ (parseInt(b)||0),0);
     const inSum = state.par.slice(9,18).reduce((a,b)=>a+ (parseInt(b)||0),0);
-    html += `<div class="sess-meta">${COURSE_NAME} ‚Äî par per hole. Used to compute each team's score relative to par.</div>`;
+    html += `<div class="sess-meta">${COURSE_NAME} \u2014 par per hole. Used to compute each team's score relative to par.</div>`;
     html += `<div class="nine-hd">Front 9 (out: ${outSum})</div><div class="par-grid">`;
     for (let h=0; h<9; h++){
       html += `<div class="par-cell"><div class="l">Hole ${h+1}</div><input type="number" min="3" max="6" value="${state.par[h]}" onchange="setPar(${h},this.value)"></div>`;
@@ -531,4 +531,3 @@ render();
 </script>
 </body>
 </html>
-
