@@ -60,7 +60,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .tr-num{width:34px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--faint);background:#f8fafc;border-right:1px solid #edf0f4}
 .tr-body{flex:1;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tr-name{font-size:13.5px;font-weight:700;color:var(--navy)}
-.tr-players{font-size:11.5px;color:var(--muted);margin-top:1px}
 .tr-status{text-align:right;min-width:70px}
 .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:11px;letter-spacing:.3px;white-space:nowrap}
 .pill.under{background:var(--green-bg);color:var(--green)}
@@ -75,7 +74,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .back{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--navy);font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:8px}
 .sc-fmt{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
 .sc-team{font-size:16px;font-weight:700;color:var(--navy);margin-top:6px}
-.sc-players{font-size:12.5px;color:var(--muted);margin-top:2px}
 .sc-status{display:flex;align-items:center;justify-content:space-between;background:var(--navy);color:#fff;border-radius:6px;padding:9px 12px;margin-top:10px}
 .sc-status .lbl{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#a9bdd6}
 .sc-status .val{font-size:15px;font-weight:700}
@@ -108,7 +106,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .lb-tbl tr:last-child td{border-bottom:none}
 .lb-rank{width:26px;font-weight:700;color:var(--faint);font-size:12px}
 .lb-team{font-weight:700;font-size:13px;color:var(--navy)}
-.lb-players{font-size:11.5px;color:var(--muted);margin-top:1px}
 .lb-thru{text-align:center;width:20%;font-size:11.5px;color:var(--muted)}
 .lb-score{text-align:right;width:20%}
 
@@ -265,26 +262,11 @@ function relClass(n){ return n===0 ? 'even' : (n>0 ? 'over' : 'under'); }
 function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 /* ---------- Team naming ----------
-   A team is named for its two players' last names, e.g. "Wright & Scarcella".
-   Suffixes are skipped so "Bob Miller Jr." lands on "Miller", not "Jr.". */
-const SUFFIXES = /^(jr|sr|ii|iii|iv|v)\.?$/i;
-function lastName(full){
-  const parts = String(full||'').trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return '';
-  let k = parts.length - 1;
-  while (k > 0 && SUFFIXES.test(parts[k])) k--;
-  return parts[k];
-}
-/* Falls back to "Team N" until at least one player is entered. */
+   A team is simply its two players, e.g. "Alex and Bob". There is no
+   separate team name. Falls back to "Team N" until players are entered. */
 function teamName(t, i){
-  const a = lastName(t.p1), b = lastName(t.p2);
-  if (a && b) return a + ' & ' + b;
-  return a || b || ('Team ' + (i+1));
-}
-/* Full names under the team name; blank until players are entered. */
-function playersLine(t){
   const names = [t.p1, t.p2].map(s=>String(s||'').trim()).filter(Boolean);
-  return names.join(' & ');
+  return names.length ? names.join(' and ') : ('Team ' + (i+1));
 }
 
 function ranked(){
@@ -362,7 +344,6 @@ function renderTeams(){
       <div class="tr-body">
         <div>
           <div class="tr-name">${esc(teamName(t,i))}</div>
-          <div class="tr-players">${esc(playersLine(t))}</div>
         </div>
         <div class="tr-status">${pill}</div>
       </div>
@@ -381,7 +362,6 @@ function renderScorecard(){
     <button class="back" onclick="closeScore()">&#8592; All teams</button>
     <div class="sc-fmt">Team ${i+1} of ${NUM_TEAMS} \u00B7 Scramble</div>
     <div class="sc-team">${esc(teamName(t,i))}</div>
-    <div class="sc-players">${esc(playersLine(t))}</div>
     <div class="sc-status">
       <span class="lbl">Score</span>
       <span class="val">${r.started ? fmtRel(r.toPar) + ' \u00B7 thru ' + r.thru + (r.done? ' (final)':'') : 'NOT STARTED'}</span>
@@ -442,7 +422,7 @@ function renderBoard(){
     else scoreHtml = `<span class="pill pend">\u2014</span>`;
     html += `<tr>
       <td class="lb-rank">${rankLbl}</td>
-      <td><div class="lb-team">${esc(teamName(t,row.idx))}</div><div class="lb-players">${esc(playersLine(t))}</div></td>
+      <td><div class="lb-team">${esc(teamName(t,row.idx))}</div></td>
       <td class="lb-thru">${r.started ? 'thru '+r.thru : ''}</td>
       <td class="lb-score">${scoreHtml}</td>
     </tr>`;
@@ -468,7 +448,7 @@ function renderAdmin(){
   if (adminTab==='teams'){
     html += `<div class="sess-meta">Enter both players \u2014 the team name is their two last names. Edits save automatically and update everywhere.</div>`;
     state.teams.forEach((t,i)=>{
-      const named = !!(lastName(t.p1) || lastName(t.p2));
+      const named = !!(String(t.p1||'').trim() || String(t.p2||'').trim());
       html += `<div class="team-card">
         <div class="tc-hd">Team ${i+1}</div>
         <div class="tc-derived ${named?'':'empty'}">${esc(named ? teamName(t,i) : 'Team ' + (i+1) + ' \u2014 add players')}</div>
