@@ -128,7 +128,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .team-card input{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:#fafbfc;margin-bottom:6px}
 .team-card input:last-child{margin-bottom:0}
 .team-card input:focus{outline:none;border-color:var(--navy);background:#fff}
-.team-card input.name{font-weight:700;color:var(--navy)}
+.team-card .tc-derived{font-size:13.5px;font-weight:700;color:var(--navy);text-transform:none;letter-spacing:0;margin-bottom:7px}
+.team-card .tc-derived.empty{color:var(--faint);font-weight:600}
 .par-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .par-cell{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;text-align:center}
 .par-cell .l{font-size:9px;color:var(--faint);text-transform:uppercase;font-weight:700;margin-bottom:4px}
@@ -174,10 +175,9 @@ const PAR_DEFAULT = [4,4,5,3,4,5,4,3,4, 4,5,3,4,5,4,3,4,4]; // Avalon Lakes, sum
 
 function defaultState(){
   return {
-    teams: Array.from({length:NUM_TEAMS},(_,i)=>({
-      name: `Team ${i+1}`,
-      p1: `Player ${i*2+1}`,
-      p2: `Player ${i*2+2}`,
+    teams: Array.from({length:NUM_TEAMS},()=>({
+      p1: '',
+      p2: '',
       scores: {}
     })),
     par: PAR_DEFAULT.slice()
@@ -226,9 +226,13 @@ function normalize(v){
   let teams = st.teams;
   if (!teams) teams = [];
   if (!Array.isArray(teams)) teams = Object.keys(teams).sort((a,b)=>a-b).map(k=>teams[k]);
+  /* Older saved data seeded "Player 7" style placeholders; treat those as blank
+     so derived team names don't come out as "7 & 8". */
+  const placeholder = /^player\s*\d+$/i;
+  const realName = s => (placeholder.test(String(s||'').trim()) ? '' : (s || ''));
   st.teams = Array.from({length:NUM_TEAMS},(_,i)=>{
     const t = teams[i] || {};
-    return { name: t.name || `Team ${i+1}`, p1: t.p1 || '', p2: t.p2 || '', scores: t.scores || {} };
+    return { p1: realName(t.p1), p2: realName(t.p2), scores: t.scores || {} };
   });
   let par = st.par;
   if (!par) par = [];
@@ -259,6 +263,29 @@ function teamResult(team){
 function fmtRel(n){ return n===0 ? 'E' : (n>0 ? '+'+n : String(n)); }
 function relClass(n){ return n===0 ? 'even' : (n>0 ? 'over' : 'under'); }
 function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- Team naming ----------
+   A team is named for its two players' last names, e.g. "Wright & Scarcella".
+   Suffixes are skipped so "Bob Miller Jr." lands on "Miller", not "Jr.". */
+const SUFFIXES = /^(jr|sr|ii|iii|iv|v)\.?$/i;
+function lastName(full){
+  const parts = String(full||'').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '';
+  let k = parts.length - 1;
+  while (k > 0 && SUFFIXES.test(parts[k])) k--;
+  return parts[k];
+}
+/* Falls back to "Team N" until at least one player is entered. */
+function teamName(t, i){
+  const a = lastName(t.p1), b = lastName(t.p2);
+  if (a && b) return a + ' & ' + b;
+  return a || b || ('Team ' + (i+1));
+}
+/* Full names under the team name; blank until players are entered. */
+function playersLine(t){
+  const names = [t.p1, t.p2].map(s=>String(s||'').trim()).filter(Boolean);
+  return names.join(' & ');
+}
 
 function ranked(){
   return state.teams.map((t,i)=>({team:t, idx:i, r:teamResult(t)}))
@@ -293,7 +320,7 @@ function render(){
   if (leader && leader.r.started){
     html += `
       <div class="hl-cap">Leader</div>
-      <div class="hl-team">${esc(leader.team.name)}</div>
+      <div class="hl-team">${esc(teamName(leader.team, leader.idx))}</div>
       <div class="hl-score ${relClass(leader.r.toPar)==='over'?'over':(leader.r.toPar<0?'under':'even')}">${fmtRel(leader.r.toPar)}</div>
       <div class="hl-thru">thru ${leader.r.thru}</div>`;
   } else {
@@ -334,8 +361,8 @@ function renderTeams(){
       <div class="tr-num">${i+1}</div>
       <div class="tr-body">
         <div>
-          <div class="tr-name">${esc(t.name)}</div>
-          <div class="tr-players">${esc(t.p1)} &amp; ${esc(t.p2)}</div>
+          <div class="tr-name">${esc(teamName(t,i))}</div>
+          <div class="tr-players">${esc(playersLine(t))}</div>
         </div>
         <div class="tr-status">${pill}</div>
       </div>
@@ -353,8 +380,8 @@ function renderScorecard(){
   <div class="sc-top">
     <button class="back" onclick="closeScore()">&#8592; All teams</button>
     <div class="sc-fmt">Team ${i+1} of ${NUM_TEAMS} \u00B7 Scramble</div>
-    <div class="sc-team">${esc(t.name)}</div>
-    <div class="sc-players">${esc(t.p1)} &amp; ${esc(t.p2)}</div>
+    <div class="sc-team">${esc(teamName(t,i))}</div>
+    <div class="sc-players">${esc(playersLine(t))}</div>
     <div class="sc-status">
       <span class="lbl">Score</span>
       <span class="val">${r.started ? fmtRel(r.toPar) + ' \u00B7 thru ' + r.thru + (r.done? ' (final)':'') : 'NOT STARTED'}</span>
@@ -401,7 +428,7 @@ function renderBoard(){
     html += `
     <div class="total-card">
       <div class="tc-cap">Leader</div>
-      <div class="tc-name">${esc(leader.team.name)}</div>
+      <div class="tc-name">${esc(teamName(leader.team, leader.idx))}</div>
       <div class="tc-pts">${fmtRel(leader.r.toPar)} <span style="font-size:14px;font-weight:600;color:#a9bdd6">thru ${leader.r.thru}</span></div>
     </div>`;
   }
@@ -415,7 +442,7 @@ function renderBoard(){
     else scoreHtml = `<span class="pill pend">\u2014</span>`;
     html += `<tr>
       <td class="lb-rank">${rankLbl}</td>
-      <td><div class="lb-team">${esc(t.name)}</div><div class="lb-players">${esc(t.p1)} &amp; ${esc(t.p2)}</div></td>
+      <td><div class="lb-team">${esc(teamName(t,row.idx))}</div><div class="lb-players">${esc(playersLine(t))}</div></td>
       <td class="lb-thru">${r.started ? 'thru '+r.thru : ''}</td>
       <td class="lb-score">${scoreHtml}</td>
     </tr>`;
@@ -439,13 +466,14 @@ function renderAdmin(){
   </div>`;
 
   if (adminTab==='teams'){
-    html += `<div class="sess-meta">Team name and both players \u2014 edits save automatically and update everywhere.</div>`;
+    html += `<div class="sess-meta">Enter both players \u2014 the team name is their two last names. Edits save automatically and update everywhere.</div>`;
     state.teams.forEach((t,i)=>{
+      const named = !!(lastName(t.p1) || lastName(t.p2));
       html += `<div class="team-card">
         <div class="tc-hd">Team ${i+1}</div>
-        <input class="name" value="${esc(t.name)}" onchange="setTeamField(${i},'name',this.value)" placeholder="Team name">
-        <input value="${esc(t.p1)}" onchange="setTeamField(${i},'p1',this.value)" placeholder="Player 1">
-        <input value="${esc(t.p2)}" onchange="setTeamField(${i},'p2',this.value)" placeholder="Player 2">
+        <div class="tc-derived ${named?'':'empty'}">${esc(named ? teamName(t,i) : 'Team ' + (i+1) + ' \u2014 add players')}</div>
+        <input value="${esc(t.p1)}" onchange="setTeamField(${i},'p1',this.value)" placeholder="Player 1 full name">
+        <input value="${esc(t.p2)}" onchange="setTeamField(${i},'p2',this.value)" placeholder="Player 2 full name">
       </div>`;
     });
   }
